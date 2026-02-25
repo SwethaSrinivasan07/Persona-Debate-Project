@@ -613,42 +613,43 @@
     .api-key-wrapper {
       display: flex;
       align-items: center;
-      gap: 6px;
-      margin-right: 12px;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+    .api-key-wrapper label {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-muted);
+      white-space: nowrap;
     }
     #apiKeyInput {
-      width: 220px;
-      padding: 7px 11px;
-      border: 1px solid rgba(255,255,255,.25);
+      flex: 1;
+      padding: 8px 12px;
+      border: 1px solid var(--border);
       border-radius: var(--radius-sm);
-      background: rgba(255,255,255,.12);
-      color: #fff;
+      background: var(--surface-2);
+      color: var(--text);
       font-size: 13px;
+      font-family: monospace;
       outline: none;
       transition: border-color .15s, background .15s;
     }
-    #apiKeyInput::placeholder { color: rgba(255,255,255,.5); }
-    #apiKeyInput:focus {
-      border-color: rgba(255,255,255,.6);
-      background: rgba(255,255,255,.2);
-    }
-    #apiKeyInput.key-saved {
-      border-color: #10b981;
-      background: rgba(16,185,129,.15);
-    }
+    #apiKeyInput::placeholder { color: var(--text-muted); }
+    #apiKeyInput:focus { border-color: var(--primary); background: #fff; }
+    #apiKeyInput.key-saved { border-color: #10b981; background: #f0fdf4; }
     #apiKeySave {
-      padding: 7px 13px;
-      background: rgba(255,255,255,.18);
-      border: 1px solid rgba(255,255,255,.25);
+      padding: 8px 14px;
+      background: var(--primary);
+      border: none;
       border-radius: var(--radius-sm);
       color: #fff;
       font-size: 13px;
-      font-weight: 500;
+      font-weight: 600;
       cursor: pointer;
       transition: background .15s;
       white-space: nowrap;
     }
-    #apiKeySave:hover { background: rgba(255,255,255,.28); }
+    #apiKeySave:hover { background: var(--primary-dark); }
   </style>
 </head>
 <body>
@@ -661,10 +662,6 @@
       <p>Stress-test your product ideas</p>
     </div>
     <div class="header-spacer"></div>
-    <div class="api-key-wrapper">
-      <input type="password" id="apiKeyInput" placeholder="Paste your OpenAI API key…" autocomplete="off" spellcheck="false" />
-      <button id="apiKeySave" title="Save key to browser">Save</button>
-    </div>
     <button id="historyToggle">📋 History</button>
   </header>
 
@@ -682,6 +679,11 @@
               <span class="badge">Input</span>
             </div>
             <div class="card-body">
+              <div class="api-key-wrapper">
+                <label for="apiKeyInput">OpenAI API Key</label>
+                <input type="password" id="apiKeyInput" placeholder="sk-…  (saved locally in your browser)" autocomplete="off" spellcheck="false" />
+                <button id="apiKeySave">Save</button>
+              </div>
               <label for="productIdea">Product Idea</label>
               <textarea id="productIdea" placeholder="Describe your product idea..."></textarea>
               <div class="char-count" id="charCount">0 characters</div>
