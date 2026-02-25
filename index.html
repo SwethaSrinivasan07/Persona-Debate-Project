@@ -10,7 +10,7 @@
         content="default-src 'self';
                  script-src 'self' 'unsafe-inline';
                  style-src 'self' 'unsafe-inline';
-                 connect-src 'self';
+                 connect-src 'self' https://api.openai.com;
                  img-src 'self' data:;
                  font-src 'self';
                  frame-ancestors 'none';
@@ -608,6 +608,47 @@
     ::-webkit-scrollbar-track { background: transparent; }
     ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
     ::-webkit-scrollbar-thumb:hover { background: #cbd5e1; }
+
+    /* ── API Key widget ── */
+    .api-key-wrapper {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-right: 12px;
+    }
+    #apiKeyInput {
+      width: 220px;
+      padding: 7px 11px;
+      border: 1px solid rgba(255,255,255,.25);
+      border-radius: var(--radius-sm);
+      background: rgba(255,255,255,.12);
+      color: #fff;
+      font-size: 13px;
+      outline: none;
+      transition: border-color .15s, background .15s;
+    }
+    #apiKeyInput::placeholder { color: rgba(255,255,255,.5); }
+    #apiKeyInput:focus {
+      border-color: rgba(255,255,255,.6);
+      background: rgba(255,255,255,.2);
+    }
+    #apiKeyInput.key-saved {
+      border-color: #10b981;
+      background: rgba(16,185,129,.15);
+    }
+    #apiKeySave {
+      padding: 7px 13px;
+      background: rgba(255,255,255,.18);
+      border: 1px solid rgba(255,255,255,.25);
+      border-radius: var(--radius-sm);
+      color: #fff;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background .15s;
+      white-space: nowrap;
+    }
+    #apiKeySave:hover { background: rgba(255,255,255,.28); }
   </style>
 </head>
 <body>
@@ -620,6 +661,10 @@
       <p>Stress-test your product ideas</p>
     </div>
     <div class="header-spacer"></div>
+    <div class="api-key-wrapper">
+      <input type="password" id="apiKeyInput" placeholder="Paste your OpenAI API key…" autocomplete="off" spellcheck="false" />
+      <button id="apiKeySave" title="Save key to browser">Save</button>
+    </div>
     <button id="historyToggle">📋 History</button>
   </header>
 
@@ -1149,7 +1194,15 @@ Return ONLY valid JSON in exactly this structure (no markdown, no extra text):
   }
 }`;
 
-      console.log('[generateDebate] Sending request to: /api/debate');
+      // ── API key check ──
+      const apiKey = localStorage.getItem('openai_api_key') || '';
+      if (!apiKey.startsWith('sk-')) {
+        showError('Please paste your OpenAI API key in the header and click Save.');
+        setLoading(false);
+        return;
+      }
+
+      console.log('[generateDebate] Sending request to OpenAI');
       console.log('[generateDebate] Model:', CONFIG.OPENAI_MODEL);
       console.log('[generateDebate] Product idea:', productIdea);
       console.log('[generateDebate] Personas:', personas);
@@ -1157,13 +1210,17 @@ Return ONLY valid JSON in exactly this structure (no markdown, no extra text):
       try {
         let response;
         try {
-          response = await fetch('/api/debate', {
+          response = await fetch('https://api.openai.com/v1/responses', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+              'Content-Type':  'application/json',
+              'Authorization': `Bearer ${apiKey}`,
+            },
             body: JSON.stringify({
               model:        CONFIG.OPENAI_MODEL,
               input:        prompt,
               instructions: 'Return only valid JSON. No markdown fences, no extra commentary.',
+              stream:       false,
             }),
           });
         } catch (networkErr) {
@@ -1179,7 +1236,7 @@ Return ONLY valid JSON in exactly this structure (no markdown, no extra text):
 
           let userMsg;
           if (response.status === 401) {
-            userMsg = 'Invalid API key — check the OPENAI_API_KEY environment variable on your server.';
+            userMsg = 'Invalid API key — double-check the key you saved in the header.';
           } else if (response.status === 429) {
             userMsg = 'Rate limited — wait a minute and try again.';
           } else if (response.status >= 500) {
@@ -1231,7 +1288,7 @@ Return ONLY valid JSON in exactly this structure (no markdown, no extra text):
 
       } catch (err) {
         console.error('[generateDebate] Unexpected error:', err,
-                      '| endpoint: /api/debate',
+                      '| endpoint: https://api.openai.com/v1/responses',
                       '| model:', CONFIG.OPENAI_MODEL,
                       '| idea length:', productIdea.length);
         showError('Something went wrong — check the console for details.', err.message);
@@ -1257,6 +1314,35 @@ Return ONLY valid JSON in exactly this structure (no markdown, no extra text):
         }
       }
     });
+
+    // ── API Key persistence ──
+    (function initApiKey() {
+      const input   = document.getElementById('apiKeyInput');
+      const saveBtn = document.getElementById('apiKeySave');
+      const stored  = localStorage.getItem('openai_api_key') || '';
+
+      if (stored) {
+        input.value = stored;
+        input.classList.add('key-saved');
+        input.placeholder = 'API key saved ✓';
+      }
+
+      function saveKey() {
+        const val = input.value.trim();
+        if (!val.startsWith('sk-')) {
+          input.classList.remove('key-saved');
+          alert('That doesn\'t look like a valid OpenAI key (should start with sk-)');
+          return;
+        }
+        localStorage.setItem('openai_api_key', val);
+        input.classList.add('key-saved');
+        input.placeholder = 'API key saved ✓';
+        input.blur();
+      }
+
+      saveBtn.addEventListener('click', saveKey);
+      input.addEventListener('keydown', (e) => { if (e.key === 'Enter') saveKey(); });
+    })();
 
     // ── Init ──
     document.addEventListener('DOMContentLoaded', () => {
