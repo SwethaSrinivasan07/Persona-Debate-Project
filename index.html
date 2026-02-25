@@ -10,7 +10,7 @@
         content="default-src 'self';
                  script-src 'self' 'unsafe-inline';
                  style-src 'self' 'unsafe-inline';
-                 connect-src 'self' https://api.openai.com;
+                 connect-src 'self';
                  img-src 'self' data:;
                  font-src 'self';
                  frame-ancestors 'none';
@@ -609,47 +609,6 @@
     ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
     ::-webkit-scrollbar-thumb:hover { background: #cbd5e1; }
 
-    /* ── API Key widget ── */
-    .api-key-wrapper {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin-bottom: 16px;
-    }
-    .api-key-wrapper label {
-      font-size: 13px;
-      font-weight: 600;
-      color: var(--text-muted);
-      white-space: nowrap;
-    }
-    #apiKeyInput {
-      flex: 1;
-      padding: 8px 12px;
-      border: 1px solid var(--border);
-      border-radius: var(--radius-sm);
-      background: var(--surface-2);
-      color: var(--text);
-      font-size: 13px;
-      font-family: monospace;
-      outline: none;
-      transition: border-color .15s, background .15s;
-    }
-    #apiKeyInput::placeholder { color: var(--text-muted); }
-    #apiKeyInput:focus { border-color: var(--primary); background: #fff; }
-    #apiKeyInput.key-saved { border-color: #10b981; background: #f0fdf4; }
-    #apiKeySave {
-      padding: 8px 14px;
-      background: var(--primary);
-      border: none;
-      border-radius: var(--radius-sm);
-      color: #fff;
-      font-size: 13px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: background .15s;
-      white-space: nowrap;
-    }
-    #apiKeySave:hover { background: var(--primary-dark); }
   </style>
 </head>
 <body>
@@ -679,11 +638,6 @@
               <span class="badge">Input</span>
             </div>
             <div class="card-body">
-              <div class="api-key-wrapper">
-                <label for="apiKeyInput">OpenAI API Key</label>
-                <input type="password" id="apiKeyInput" placeholder="sk-…  (saved locally in your browser)" autocomplete="off" spellcheck="false" />
-                <button id="apiKeySave">Save</button>
-              </div>
               <label for="productIdea">Product Idea</label>
               <textarea id="productIdea" placeholder="Describe your product idea..."></textarea>
               <div class="char-count" id="charCount">0 characters</div>
@@ -1196,15 +1150,7 @@ Return ONLY valid JSON in exactly this structure (no markdown, no extra text):
   }
 }`;
 
-      // ── API key check ──
-      const apiKey = localStorage.getItem('openai_api_key') || '';
-      if (!apiKey.startsWith('sk-')) {
-        showError('Please paste your OpenAI API key in the header and click Save.');
-        setLoading(false);
-        return;
-      }
-
-      console.log('[generateDebate] Sending request to OpenAI');
+      console.log('[generateDebate] Sending request to: /api/debate');
       console.log('[generateDebate] Model:', CONFIG.OPENAI_MODEL);
       console.log('[generateDebate] Product idea:', productIdea);
       console.log('[generateDebate] Personas:', personas);
@@ -1212,17 +1158,13 @@ Return ONLY valid JSON in exactly this structure (no markdown, no extra text):
       try {
         let response;
         try {
-          response = await fetch('https://api.openai.com/v1/responses', {
+          response = await fetch('/api/debate', {
             method: 'POST',
-            headers: {
-              'Content-Type':  'application/json',
-              'Authorization': `Bearer ${apiKey}`,
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               model:        CONFIG.OPENAI_MODEL,
               input:        prompt,
               instructions: 'Return only valid JSON. No markdown fences, no extra commentary.',
-              stream:       false,
             }),
           });
         } catch (networkErr) {
@@ -1238,7 +1180,7 @@ Return ONLY valid JSON in exactly this structure (no markdown, no extra text):
 
           let userMsg;
           if (response.status === 401) {
-            userMsg = 'Invalid API key — double-check the key you saved in the header.';
+            userMsg = 'Invalid API key — check the OPENAI_API_KEY environment variable on your server.';
           } else if (response.status === 429) {
             userMsg = 'Rate limited — wait a minute and try again.';
           } else if (response.status >= 500) {
@@ -1290,7 +1232,7 @@ Return ONLY valid JSON in exactly this structure (no markdown, no extra text):
 
       } catch (err) {
         console.error('[generateDebate] Unexpected error:', err,
-                      '| endpoint: https://api.openai.com/v1/responses',
+                      '| endpoint: /api/debate',
                       '| model:', CONFIG.OPENAI_MODEL,
                       '| idea length:', productIdea.length);
         showError('Something went wrong — check the console for details.', err.message);
@@ -1316,35 +1258,6 @@ Return ONLY valid JSON in exactly this structure (no markdown, no extra text):
         }
       }
     });
-
-    // ── API Key persistence ──
-    (function initApiKey() {
-      const input   = document.getElementById('apiKeyInput');
-      const saveBtn = document.getElementById('apiKeySave');
-      const stored  = localStorage.getItem('openai_api_key') || '';
-
-      if (stored) {
-        input.value = stored;
-        input.classList.add('key-saved');
-        input.placeholder = 'API key saved ✓';
-      }
-
-      function saveKey() {
-        const val = input.value.trim();
-        if (!val.startsWith('sk-')) {
-          input.classList.remove('key-saved');
-          alert('That doesn\'t look like a valid OpenAI key (should start with sk-)');
-          return;
-        }
-        localStorage.setItem('openai_api_key', val);
-        input.classList.add('key-saved');
-        input.placeholder = 'API key saved ✓';
-        input.blur();
-      }
-
-      saveBtn.addEventListener('click', saveKey);
-      input.addEventListener('keydown', (e) => { if (e.key === 'Enter') saveKey(); });
-    })();
 
     // ── Init ──
     document.addEventListener('DOMContentLoaded', () => {
