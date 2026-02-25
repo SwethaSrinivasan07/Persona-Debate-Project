@@ -74,9 +74,14 @@ app.post('/api/debate', async (req, res) => {
         'Content-Type':  'application/json',
         'Authorization': `Bearer ${apiKey}`,
       },
-      body: JSON.stringify({ model, input, instructions }),
+      body: JSON.stringify({ model, input, instructions, stream: false }),
+      signal: AbortSignal.timeout(55_000), // 55s — just under Render's 60s limit
     });
   } catch (networkErr) {
+    if (networkErr.name === 'TimeoutError' || networkErr.name === 'AbortError') {
+      console.error('[/api/debate] Request to OpenAI timed out');
+      return res.status(504).json({ error: 'Request timed out — OpenAI took too long. Try a shorter prompt.' });
+    }
     console.error('[/api/debate] Network error reaching OpenAI:', networkErr.message);
     return res.status(502).json({ error: 'Could not reach OpenAI — network error' });
   }
