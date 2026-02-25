@@ -1,0 +1,17 @@
+{
+  "name": "persona-debate",
+  "version": "1.0.0",
+  "description": "Stress-test product ideas with a multi-persona AI debate",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "express": "^4.19.2"
+  }
+}

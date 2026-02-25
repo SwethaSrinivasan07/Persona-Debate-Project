@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: persona-debate
+    runtime: node
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: OPENAI_API_KEY
+        sync: false   # Render will prompt you to enter the value in the dashboard — never stored in this file
+      - key: NODE_ENV
+        value: production
+    healthCheckPath: /
