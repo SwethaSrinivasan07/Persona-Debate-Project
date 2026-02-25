@@ -88,6 +88,8 @@ app.post('/api/debate', async (req, res) => {
 
   const body = await openAIRes.text();
   console.log(`[/api/debate] OpenAI response status: ${openAIRes.status}`);
+  console.log(`[/api/debate] OpenAI response body length: ${body.length}`);
+  console.log(`[/api/debate] OpenAI response body preview: ${body.slice(0, 300)}`);
 
   // Forward status and body straight through — the frontend already handles error codes
   res.status(openAIRes.status)
